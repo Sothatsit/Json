@@ -28,9 +28,9 @@ public class StringReadStream implements CharReadStream {
         if(index > 0 && this.chars[index - 1] == '\n') {
             this.line++;
             this.character = 0;
+        } else {
+            this.character++;
         }
-
-        this.character++;
 
         return this.chars[this.index++];
     }

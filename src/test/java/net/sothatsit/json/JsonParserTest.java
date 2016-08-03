@@ -189,6 +189,11 @@ public class JsonParserTest {
     }
 
     @Test
+    public void testDecimalZero() {
+        Assert.assertEquals(0, new JsonParser().parseNumber("0.0").asByteExact());
+    }
+
+    @Test
     public void testTrueBoolean() {
         Assert.assertEquals(true, new JsonParser().parseBoolean("true").asBoolean());
     }

@@ -410,49 +410,41 @@ public class JsonParser {
         boolean isEndOfStream = false;
         int scale = 0;
 
-        if(intPart != 0) {
-            while(true) {
-                if(!stream.hasNext()) {
-                    isEndOfStream = true;
-                    break;
-                }
-
-                c = stream.next();
-
-                int val = c - '0';
-                if(val >= 0 && val <= 9) {
-                    if(intPart > UPSIZE_NUM) {
-                        return parseBigNumber(stream, intPart, val, digits, trailingZeros, sign, seenDecimalPoint, scale);
-                    }
-
-                    intPart = intPart * 10 + val;
-                    digits++;
-
-                    if(val == 0) {
-                        trailingZeros++;
-                    } else {
-                        trailingZeros = 0;
-                    }
-
-                    if(seenDecimalPoint) {
-                        scale++;
-                    }
-                } else if(c == '.') {
-                    if(seenDecimalPoint) {
-                        break;
-                    }
-
-                    seenDecimalPoint = true;
-                } else {
-                    break;
-                }
-            }
-        } else {
+        while(true) {
             if(!stream.hasNext()) {
-                return JsonNumber.create(0);
+                isEndOfStream = true;
+                break;
             }
 
             c = stream.next();
+
+            int val = c - '0';
+            if(val >= 0 && val <= 9) {
+                if(intPart > UPSIZE_NUM) {
+                    return parseBigNumber(stream, intPart, val, digits, trailingZeros, sign, seenDecimalPoint, scale);
+                }
+
+                intPart = intPart * 10 + val;
+                digits++;
+
+                if(val == 0) {
+                    trailingZeros++;
+                } else {
+                    trailingZeros = 0;
+                }
+
+                if(seenDecimalPoint) {
+                    scale++;
+                }
+            } else if(c == '.') {
+                if(seenDecimalPoint) {
+                    break;
+                }
+
+                seenDecimalPoint = true;
+            } else {
+                break;
+            }
         }
 
         int exponent;
@@ -466,11 +458,19 @@ public class JsonParser {
             exponent = parseExponent(stream) - scale;
         }
 
-        if((trailingZeros + exponent) < 0) {
-            return JsonNumber.create(new BigDecimal(BigInteger.valueOf(intPart), -exponent).stripTrailingZeros());
+        if(intPart == 0) {
+            return JsonNumber.create(0);
         }
 
         int newDigits = digits + exponent;
+
+        if(trailingZeros + exponent < 0) {
+            if(newDigits <= 17) {
+                return JsonNumber.create((double) intPart * Math.pow(10, exponent));
+            } else {
+                return JsonNumber.create(new BigDecimal(BigInteger.valueOf(intPart), -exponent).stripTrailingZeros());
+            }
+        }
 
         if(newDigits > 19 || (newDigits == 19 && intPart > LONG_MAX_VALUES[digits])) {
             if(exponent > 0) {
